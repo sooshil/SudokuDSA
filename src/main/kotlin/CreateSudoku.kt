@@ -1,112 +1,89 @@
-class Sudoku internal constructor(// number of columns/rows.
-    var N: Int, // No. Of missing digits
-    var K: Int
+import kotlin.math.floor
+import kotlin.math.sqrt
+
+class Sudoku(
+    private var gridSize: Int,
+    private var removeNumberCount: Int
 ) {
-    var mat: Array<IntArray>
-    var SRN // square root of N
-            : Int
+    private var grid: Array<IntArray> = Array(gridSize) { IntArray(gridSize) }
+    private var subgridSize = sqrt(gridSize.toDouble()).toInt()
 
-    // Constructor
-    init {
-
-        // Compute square root of N
-        val SRNd = Math.sqrt(N.toDouble())
-        SRN = SRNd.toInt()
-        mat = Array(N) { IntArray(N) }
-    }
-
-    // Sudoku Generator
     fun fillValues() {
-        // Fill the diagonal of SRN x SRN matrices
         fillDiagonal()
-
-        // Fill remaining blocks
-        fillRemaining(0, SRN)
-
-        // Remove Randomly K digits to make game
+        fillRemaining(0, subgridSize)
         removeKDigits()
     }
 
-    // Fill the diagonal SRN number of SRN x SRN matrices
-    fun fillDiagonal() {
-        var i = 0
-        while (i < N) {
-            // for diagonal box, start coordinates->i==j
-            fillBox(i, i)
-            i = i + SRN
-        }
-    }
-
-    // Returns false if given 3 x 3 block contains num.
-    fun unUsedInBox(rowStart: Int, colStart: Int, num: Int): Boolean {
-        for (i in 0 until SRN) for (j in 0 until SRN) if (mat[rowStart + i][colStart + j] == num) return false
-        return true
-    }
-
-    // Fill a 3 x 3 matrix.
-    fun fillBox(row: Int, col: Int) {
-        var num: Int
-        for (i in 0 until SRN) {
-            for (j in 0 until SRN) {
-                do {
-                    num = randomGenerator(N)
-                } while (!unUsedInBox(row, col, num))
-                mat[row + i][col + j] = num
+    /** first fills the n*n subgrid diagonally. */
+    private fun fillDiagonal() {
+        var n = 0
+        while (n < gridSize) {
+            var num: Int
+            for (i in 0 until subgridSize) {
+                for (j in 0 until subgridSize) {
+                    do {
+                        num = random(gridSize)
+                    } while (safeInSubGrid(n, n, num).not())
+                    grid[n + i][n + j] = num
+                }
             }
+            n += subgridSize
         }
     }
 
-    // Random generator
-    fun randomGenerator(num: Int): Int {
-        return Math.floor(Math.random() * num + 1).toInt()
+    private fun isSafe(row: Int, column: Int, num: Int): Boolean {
+        return safeInRow(row, num) &&
+                safeInColumn(column, num) &&
+                safeInSubGrid(row - row % subgridSize, column - column % subgridSize, num)
     }
 
-    // Check if safe to put in cell
-    fun CheckIfSafe(i: Int, j: Int, num: Int): Boolean {
-        return unUsedInRow(i, num) &&
-                unUsedInCol(j, num) &&
-                unUsedInBox(i - i % SRN, j - j % SRN, num)
-    }
-
-    // check in the row for existence
-    fun unUsedInRow(i: Int, num: Int): Boolean {
-        for (j in 0 until N) if (mat[i][j] == num) return false
+    private fun safeInRow(row: Int, num: Int): Boolean {
+        for (i in 0 until gridSize) if (grid[row][i] == num) return false
         return true
     }
 
-    // check in the row for existence
-    fun unUsedInCol(j: Int, num: Int): Boolean {
-        for (i in 0 until N) if (mat[i][j] == num) return false
+    private fun safeInColumn(column: Int, num: Int): Boolean {
+        for (i in 0 until gridSize) if (grid[i][column] == num) return false
         return true
+    }
+
+    private fun safeInSubGrid(rowStart: Int, colStart: Int, num: Int): Boolean {
+        for (i in 0 until subgridSize)
+            for (j in 0 until subgridSize)
+                if (grid[rowStart + i][colStart + j] == num) return false
+        return true
+    }
+
+    private fun random(num: Int): Int {
+        return floor(Math.random() * num + 1).toInt()
     }
 
     // A recursive function to fill remaining
     // matrix
-    fun fillRemaining(i: Int, j: Int): Boolean {
-        //  System.out.println(i+" "+j);
-        var i = i
-        var j = j
-        if (j >= N && i < N - 1) {
-            i = i + 1
-            j = 0
+    private fun fillRemaining(r: Int, c: Int): Boolean {
+        var row = r
+        var column = c
+        if (column >= gridSize && row < gridSize - 1) {
+            row += 1
+            column = 0
         }
-        if (i >= N && j >= N) return true
-        if (i < SRN) {
-            if (j < SRN) j = SRN
-        } else if (i < N - SRN) {
-            if (j == (i / SRN) * SRN) j = j + SRN
+        if (row >= gridSize && column >= gridSize) return true
+        if (row < subgridSize) {
+            if (column < subgridSize) column = subgridSize
+        } else if (row < gridSize - subgridSize) {
+            if (column == (row / subgridSize) * subgridSize) column += subgridSize
         } else {
-            if (j == N - SRN) {
-                i = i + 1
-                j = 0
-                if (i >= N) return true
+            if (column == gridSize - subgridSize) {
+                row += 1
+                column = 0
+                if (row >= gridSize) return true
             }
         }
-        for (num in 1..N) {
-            if (CheckIfSafe(i, j, num)) {
-                mat[i][j] = num
-                if (fillRemaining(i, j + 1)) return true
-                mat[i][j] = 0
+        for (num in 1..gridSize) {
+            if (this.isSafe(row, column, num)) {
+                grid[row][column] = num
+                if (fillRemaining(row, column + 1)) return true
+                grid[row][column] = 0
             }
         }
         return false
@@ -114,43 +91,31 @@ class Sudoku internal constructor(// number of columns/rows.
 
     // Remove the K no. of digits to
     // complete game
-    fun removeKDigits() {
-        var count = K
+    private fun removeKDigits() {
+        var count = removeNumberCount
         while (count != 0) {
-            val cellId = randomGenerator(N * N) - 1
+            val cellId = random(gridSize * gridSize) - 1
 
-            // System.out.println(cellId);
+            //println(cellId)
             // extract coordinates i  and j
-            val i = cellId / N
-            var j = cellId % 9
-            if (j != 0) j = j - 1
+            val i = cellId / gridSize //15/9=1
+            var j = cellId % gridSize //15%9=6
+            //if (j != 0) j -= 1
 
-            // System.out.println(i+" "+j);
-            if (mat[i][j] != 0) {
+            println("$i $j");
+            if (grid[i][j] != 0) {
                 count--
-                mat[i][j] = 0
+                grid[i][j] = 0
             }
         }
     }
 
     // Print sudoku
     fun printSudoku() {
-        for (i in 0 until N) {
-            for (j in 0 until N) print(mat[i][j].toString() + " ")
+        for (i in 0 until gridSize) {
+            for (j in 0 until gridSize) print(grid[i][j].toString() + " ")
             println()
         }
         println()
-    }
-
-    companion object {
-        // Driver code
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val N = 9
-            val K = 20
-            val sudoku = Sudoku(N, K)
-            sudoku.fillValues()
-            sudoku.printSudoku()
-        }
     }
 }
