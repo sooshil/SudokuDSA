@@ -2,11 +2,29 @@ import kotlin.math.floor
 import kotlin.math.sqrt
 
 class Sudoku(
-    private var gridSize: Int,
-    private var removeNumberCount: Int
+    val gridSize: Int,
+    difficulty: Difficulty
 ) {
-    private var grid: Array<IntArray> = Array(gridSize) { IntArray(gridSize) }
+    var grid: Array<IntArray> = Array(gridSize) { IntArray(gridSize) }
     private var subgridSize = sqrt(gridSize.toDouble()).toInt()
+
+    private val removeNumberCount = if (gridSize == 4) {
+        when (difficulty) {
+            Difficulty.EASY -> 2
+            Difficulty.MEDIUM -> 4
+            else -> 5
+        }
+    } else {
+        when (difficulty) {
+            Difficulty.EASY -> randomBetween(20, 25)
+            Difficulty.MEDIUM -> randomBetween(35, 45)
+            else -> randomBetween(55, 65)
+        }
+    }
+
+    init {
+        fillValues()
+    }
 
     fun fillValues() {
         fillDiagonal()
@@ -58,6 +76,14 @@ class Sudoku(
         return floor(Math.random() * num + 1).toInt()
     }
 
+    private fun randomBetween(num1: Int, num2: Int): Int {
+        return when {
+            num1 == num2 -> num1
+            num1 < num2 -> (num1..num2).random()
+            else -> (num2..num1).random()
+        }
+    }
+
     // A recursive function to fill remaining
     // matrix
     private fun fillRemaining(r: Int, c: Int): Boolean {
@@ -96,13 +122,9 @@ class Sudoku(
         while (count != 0) {
             val cellId = random(gridSize * gridSize) - 1
 
-            //println(cellId)
-            // extract coordinates i  and j
             val i = cellId / gridSize //15/9=1
-            var j = cellId % gridSize //15%9=6
-            //if (j != 0) j -= 1
+            val j = cellId % gridSize //15%9=6
 
-            println("$i $j");
             if (grid[i][j] != 0) {
                 count--
                 grid[i][j] = 0
@@ -110,12 +132,20 @@ class Sudoku(
         }
     }
 
-    // Print sudoku
-    fun printSudoku() {
-        for (i in 0 until gridSize) {
-            for (j in 0 until gridSize) print(grid[i][j].toString() + " ")
-            println()
-        }
+
+}
+
+// Print sudoku
+fun Sudoku.printSudoku() {
+    for (i in 0 until gridSize) {
+        for (j in 0 until gridSize) print(grid[i][j].toString() + " ")
         println()
     }
+    println()
+}
+
+enum class Difficulty(level: Int) {
+    EASY(0),
+    MEDIUM(1),
+    HARD(2)
 }

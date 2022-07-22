@@ -51,10 +51,7 @@ fun printUnsolvedSudoku() {
     val begin = System.nanoTime()
     val begin1 = System.currentTimeMillis()
 
-    val k = 40
-    val sudoku = Sudoku(9, k)
-    sudoku.fillValues()
-    sudoku.printSudoku()
+    Sudoku(9, Difficulty.MEDIUM).printSudoku()
     val end = System.nanoTime()
     val end1 = System.currentTimeMillis()
     println("The total time taken is: ${end - begin} nanoseconds")
